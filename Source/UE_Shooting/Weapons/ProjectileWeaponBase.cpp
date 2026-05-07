@@ -118,7 +118,8 @@ void AProjectileWeaponBase::NotifyBeginAttack_Implementation()
 	IProjectileWeaponTemplate::Execute_SpawnProjectile(this, 1);
 
 	// 반동 적용
-	ownerPawn->AddControllerPitchInput(recoil);
+	ownerPawn->AddControllerPitchInput(-recoil);
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Recoil!!!!"));
 
 	// 공격에 따른 소음 발생
 	if (Owner->FindComponentByClass<UPawnNoiseEmitterComponent>() != nullptr)

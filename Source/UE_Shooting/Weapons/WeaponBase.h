@@ -66,19 +66,19 @@ protected:
 
 	// 공격 입력의 여부를 판별하는 변수
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "3_GeneralSettings")
-	bool bAttackInput;
+	bool bAttackInput = false;
 
 	// 현재 공격이 가능한지 판별하는 변수
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "3_GeneralSettings")
-	bool bCanAttack;
+	bool bCanAttack = true;
 
 	// 자동으로 다음 공격이 가능한지를 판별하는 변수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3_GeneralSettings")
-	bool bIsAuto;
+	bool bIsAuto = false;
 
 	// 공격 후 딜레이 [sec]
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3_GeneralSettings")
-	float afterAttackDelay;
+	float afterAttackDelay = 0.1f;
 
 	// 공격 입력이 지속적으로 들어올 때, 다음 공격을 예약하는 타이머
 	UPROPERTY(BlueprintReadWrite, Category = "3_GeneralSettings")
@@ -86,7 +86,7 @@ protected:
 
 	// 공격에 따른 소음 크기
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3_GeneralSettings")
-	float noiseDecibel;
+	float noiseDecibel = 0;
 
 #pragma endregion
 

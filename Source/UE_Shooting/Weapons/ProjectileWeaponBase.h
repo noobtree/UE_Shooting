@@ -37,7 +37,7 @@ protected:
 
 	// 총구 초속
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4_Projectile")
-	float muzzleSpeed;
+	float muzzleSpeed = 100;
 
 #pragma region Ammo
 

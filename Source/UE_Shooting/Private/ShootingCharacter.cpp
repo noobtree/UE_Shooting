@@ -168,8 +168,12 @@ void AShootingCharacter::AddWeaponClass_Implementation(TSubclassOf<AWeaponBase> 
 	// 중복되는 무기가 존재하지 않는 경우
 	if (duplicatedWeapon == nullptr)
 	{
+		FActorSpawnParameters spawnParams;
+		spawnParams.Owner = this;
+		spawnParams.Instigator = this;
+
 		// 무기 생성
-		AWeaponBase* weapon = GetWorld()->SpawnActor<AWeaponBase>(weaponClass, GetActorTransform());
+		AWeaponBase* weapon = GetWorld()->SpawnActor<AWeaponBase>(weaponClass, GetActorTransform(), spawnParams);
 
 		// 보유 목록에 무기 추가
 		ownedWeapons.Add(weapon);
@@ -188,7 +192,10 @@ void AShootingCharacter::AttachWeaponMeshes_Implementation(AWeaponBase* weaponAc
 	// 1인칭 Mesh 부착
 	if (firstPersonMeshComponent != nullptr)
 	{
-		firstPersonWeaponMesh->AttachToComponent(firstPersonMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("HandGrip_R"));
+		if (firstPersonMeshComponent->DoesSocketExist(FName("HandGrip_R")) == true)
+		{
+			firstPersonWeaponMesh->AttachToComponent(firstPersonMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("HandGrip_R"));
+		}
 		firstPersonWeaponMesh->SetCollisionProfileName(FName("NoCollision"));
 	}
 	// 3인칭 Mesh 부착
@@ -201,14 +208,14 @@ void AShootingCharacter::AttachWeaponMeshes_Implementation(AWeaponBase* weaponAc
 
 void AShootingCharacter::PlayWeaponMontage_Implementation(UAnimMontage* firstPersonMontage, UAnimMontage* thirdPersonMontage)
 {
-	if (firstPersonMeshComponent != nullptr)
+	if (firstPersonMeshComponent != nullptr && firstPersonMontage != nullptr)
 	{
 		if (UAnimInstance* animInstance1P = firstPersonMeshComponent->GetAnimInstance())
 		{
 			float duration = animInstance1P->Montage_Play(firstPersonMontage);
 		}
 	}
-	if (GetMesh() != nullptr)
+	if (GetMesh() != nullptr && thirdPersonMontage != nullptr)
 	{
 		if (UAnimInstance* animInstance3P = GetMesh()->GetAnimInstance())
 		{

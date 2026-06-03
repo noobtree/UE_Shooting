@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputComponent.h"
 #include "ShootingPlayerController.h"
+#include "UE_Shooting/Components/InputBindable.h"
 #include "UE_Shooting/Weapons/WeaponBase.h"
 
 // Sets default values
@@ -110,6 +111,18 @@ void AShootingCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 			}
 		}
 	}
+
+	TArray<UActorComponent*> inputBindableComponents = GetComponentsByInterface(UInputBindable::StaticClass());
+	for (UActorComponent* component : inputBindableComponents)
+	{
+		if (IsValid(component) == true)
+		{
+			if (IInputBindable* inputBindableComponent = Cast<IInputBindable>(component))
+			{
+				inputBindableComponent->SetupPlayerInputComponent(PlayerInputComponent);
+			}
+		}
+	}
 }
 
 void AShootingCharacter::SetCharacterViewPoint(ECharacterViewpoint newViewpoint)
@@ -155,54 +168,159 @@ void AShootingCharacter::SetCharacterViewPoint(ECharacterViewpoint newViewpoint)
 	}
 }
 
-#pragma region Derived From IWeaponHolderTemplate
-
-void AShootingCharacter::AddWeaponClass_Implementation(TSubclassOf<AWeaponBase> weaponClass)
+FHitResult AShootingCharacter::GetInformationLookingAt(float distance)
 {
-	// 동일한 무기 검색
-	AWeaponBase** duplicatedWeapon = ownedWeapons.FindByPredicate([weaponClass](const AWeaponBase* weapon)
-		{
-			return weapon != nullptr && weapon->GetClass() == weaponClass;
-		});
-	
-	// 중복되는 무기가 존재하지 않는 경우
-	if (duplicatedWeapon == nullptr)
-	{
-		FActorSpawnParameters spawnParams;
-		spawnParams.Owner = this;
-		spawnParams.Instigator = this;
+	UCameraComponent* camera = viewpoint == ECharacterViewpoint::FirstPerson ? firstPersonCameraComponent : thirdPersonCameraComponent;
 
-		// 무기 생성
-		AWeaponBase* weapon = GetWorld()->SpawnActor<AWeaponBase>(weaponClass, GetActorTransform(), spawnParams);
+	FHitResult hitResult;
+	FVector startLocation = camera->GetComponentLocation();
+	FVector endLocation = startLocation + distance * camera->GetForwardVector();
+	FCollisionQueryParams queryParams;
+	queryParams.AddIgnoredActor(this);
 
-		// 보유 목록에 무기 추가
-		ownedWeapons.Add(weapon);
+	GetWorld()->LineTraceSingleByChannel(hitResult, startLocation, endLocation, ECollisionChannel::ECC_Visibility, queryParams);
 
-		// 생성된 무기를 캐릭터에게 부착
-		IWeaponHolderTemplate::Execute_AttachWeaponMeshes(this, weapon, weapon->GetFirstPersonMeshComponent(), weapon->GetThirdPersonMeshComponent());
-	}
+	return hitResult;
 }
 
-void AShootingCharacter::AttachWeaponMeshes_Implementation(AWeaponBase* weaponActor, USkeletalMeshComponent* firstPersonWeaponMesh, USkeletalMeshComponent* thirdPersonWeaponMesh)
-{
-	// 액터 부착
-	weaponActor->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-	weaponActor->SetActorEnableCollision(false);
+#pragma region Derived From IWeaponHolderTemplate
 
-	// 1인칭 Mesh 부착
-	if (firstPersonMeshComponent != nullptr)
+bool AShootingCharacter::AddWeaponClass_Implementation(TSubclassOf<AWeaponBase> weaponClass, FInstancedStruct& deltaPropery, bool bIsSwap)
+{
+	// nullptr 방어
+	if (weaponClass == nullptr)
 	{
-		if (firstPersonMeshComponent->DoesSocketExist(FName("HandGrip_R")) == true)
-		{
-			firstPersonWeaponMesh->AttachToComponent(firstPersonMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("HandGrip_R"));
-		}
-		firstPersonWeaponMesh->SetCollisionProfileName(FName("NoCollision"));
+		return false;
 	}
-	// 3인칭 Mesh 부착
-	if (USkeletalMeshComponent* thirdPersonMeshComponent = GetMesh())
+
+	UClass* addSuperClass = weaponClass->GetSuperClass();
+
+	// 중복된 유형의 무기 검색 (주무기, 보조무기, 투척무기 등)
+	TSubclassOf<AWeaponBase> duplicatedKey = nullptr;
+	for (const auto& pair : ownedWeapons)
 	{
-		thirdPersonWeaponMesh->AttachToComponent(thirdPersonMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("HandGrip_R"));
-		thirdPersonWeaponMesh->SetCollisionProfileName(FName("NoCollision"));
+		if (pair.Key != nullptr)
+		{
+			UClass* existSupperClass = pair.Key->GetSuperClass();
+
+			if (addSuperClass == existSupperClass)
+			{
+				duplicatedKey = pair.Key;
+				break;
+			}
+		}
+	}
+
+	// 중복된 유형의 무기가 존재하는 경우
+	if (duplicatedKey != nullptr)
+	{
+		// 무기를 교체하지 않는 경우
+		if (bIsSwap == false)
+		{
+			// 함수 조기 종료
+			return false;
+		}
+
+		// 보유 목록에서 해당 무기 제거
+		IWeaponHolderTemplate::Execute_RemoveWeaponClass(this, duplicatedKey);
+	}
+
+	// 보유 무기 목록에 새로운 무기 추가
+	ownedWeapons.Add(weaponClass, deltaPropery);
+
+	return true;
+}
+
+bool AShootingCharacter::RemoveWeaponClass_Implementation(TSubclassOf<AWeaponBase> weaponClass)
+{
+	// nullptr 방어
+	if (weaponClass == nullptr)
+	{
+		return false;
+	}
+	// 현재 장착중인 무기를 제거하는 경우
+	if (holdWeapon->GetClass() == weaponClass->GetClass())
+	{
+		// 무기 해제
+		IWeaponHolderTemplate::Execute_DisarmWeapon(this, weaponClass);
+	}
+
+	// 보유 목록에서 무기 제거 후 CDO와의 차이값 얻기
+	FInstancedStruct deltaProperty;
+	if (ownedWeapons.RemoveAndCopyValue(weaponClass, deltaProperty) == true)
+	{
+		// TODO :
+		// Ex) 아이템 액터 생성
+
+		return true;
+	}
+
+	return false;
+}
+
+void AShootingCharacter::ArmWeapon_Implementation(TSubclassOf<AWeaponBase> weaponClass)
+{
+	// 무기 클래스가 유효하지 않은 경우
+	// 해당 클래스의 무기를 보유하지 않은 경우
+	if (weaponClass == nullptr || ownedWeapons.Contains(weaponClass) == false)
+	{
+		// 함수 조기 종료
+		return;
+	}
+
+	// 현재 장착한 무기가 존재하는 경우
+	if (holdWeapon != nullptr)
+	{
+		// 현재 장착한 무기가 교체하려는 무기와 동일한 경우
+		if (holdWeapon->GetClass() == weaponClass)
+		{
+			// 함수 조기 종료
+			return;
+		}
+
+		IWeaponHolderTemplate::Execute_DisarmWeapon(this, holdWeapon->GetClass());
+	}
+
+	// 스폰 옵션 설정
+	FActorSpawnParameters spawnParams;
+	spawnParams.Owner = this;
+	spawnParams.Instigator = this;
+
+	// 무기 클래스 인스턴스 생성
+	AWeaponBase* weapon = GetWorld()->SpawnActor<AWeaponBase>(weaponClass, GetActorTransform(), spawnParams);
+
+	// CDO와 비교하여 변화된 속성값 적용
+	FInstancedStruct deltaProperty = ownedWeapons[weaponClass];
+	weapon->ApplyDeltaProperty(deltaProperty);
+
+	SetHoldWeapon(weapon);
+}
+
+void AShootingCharacter::DisarmWeapon_Implementation(TSubclassOf<AWeaponBase> weaponClass)
+{
+	// 잘못된 무기 클래스 또는 미 보유한 무기의 경우
+	if (weaponClass == nullptr || ownedWeapons.Contains(weaponClass) == false)
+	{
+		// 함수 조기 종료
+		return;
+	}
+
+	// 현재 장착한 무기가 존재하는 경우
+	if (holdWeapon != nullptr)
+	{
+		// 현재 장착한 무기가 무장 해제하려는 무기가 동일한 경우
+		if (holdWeapon->GetClass() == weaponClass)
+		{
+			// CDO와 비교하여 변화된 속성값 추출
+			FInstancedStruct deltaProperty = holdWeapon->ExtractDeltaProperty();
+
+			// 변화된 속성값 저장
+			ownedWeapons[weaponClass] = deltaProperty;
+
+			// 무기 객체 파괴
+			holdWeapon->Destroy();
+			holdWeapon = nullptr;
+		}
 	}
 }
 
@@ -246,24 +364,6 @@ FVector AShootingCharacter::GetWeaponTargetLocation_Implementation()
 		return hit.ImpactPoint;
 	}
 	return endLocation;
-}
-
-void AShootingCharacter::ActivateWeapon_Implementation(AWeaponBase* weaponActor)
-{
-	if (firstPersonMeshComponent != nullptr)
-	{
-		firstPersonMeshComponent->SetAnimInstanceClass(weaponActor->GetFirstPersonAnimInstance());
-	}
-	if (USkeletalMeshComponent* thirdPersonMeshComponent = GetMesh())
-	{
-		thirdPersonMeshComponent->SetAnimInstanceClass(weaponActor->GetThirdPersonAnimInstance());
-	}
-
-	IWeaponHolderTemplate::Execute_UpdateWeaponHUDWidget(this, weaponActor);
-}
-
-void AShootingCharacter::DeativateWeapon_Implementation(AWeaponBase* weaponActor)
-{
 }
 
 #pragma endregion
@@ -327,28 +427,47 @@ void AShootingCharacter::ChangeViewpointAction(const FInputActionValue& value)
 
 void AShootingCharacter::AttackStartedAction()
 {
-	if (Controller == nullptr || ownedWeapons.IsValidIndex(equipedIndex) == false)
+	if (Controller == nullptr || holdWeapon == nullptr)
 	{
 		return;
 	}
 
-	if (AWeaponBase* equipedWeapon = ownedWeapons[equipedIndex])
-	{
-		equipedWeapon->StartAttack();
-	}
+	holdWeapon->StartAttack();
 }
 
 void AShootingCharacter::AttackCompletedAction()
 {
-	if (Controller == nullptr || ownedWeapons.IsValidIndex(equipedIndex) == false)
+	if (Controller == nullptr || holdWeapon == nullptr)
 	{
 		return;
 	}
 
-	if (AWeaponBase* equipedWeapon = ownedWeapons[equipedIndex])
+	holdWeapon->StopAttack();
+}
+
+void AShootingCharacter::SetHoldWeapon(AWeaponBase* weapon)
+{
+	if (weapon == nullptr)
 	{
-		equipedWeapon->StopAttack();
+		return;
 	}
+
+	// 무기 액터 부착
+	weapon->AttachToActor(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+	// 액터의 SkeletalMeshComponent에 무기 MeshComponent 부착 및 애니메이션 그래프 설정
+	if (firstPersonMeshComponent != nullptr)
+	{
+		weapon->GetFirstPersonMeshComponent()->AttachToComponent(firstPersonMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, NAME_None);
+		firstPersonMeshComponent->SetAnimInstanceClass(weapon->GetFirstPersonAnimInstance());
+	}
+	if (USkeletalMeshComponent* characterMeshComponent = GetMesh())
+	{
+		weapon->GetThirdPersonMeshComponent()->AttachToComponent(characterMeshComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, NAME_None);
+		characterMeshComponent->SetAnimInstanceClass(weapon->GetThirdPersonAnimInstance());
+	}
+
+	holdWeapon = weapon;
 }
 
 #pragma endregion

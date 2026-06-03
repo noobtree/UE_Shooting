@@ -25,11 +25,19 @@ class UE_SHOOTING_API IWeaponHolderTemplate
 public:
 	// 임의 무기를 획득하는 함수
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
-	void AddWeaponClass(TSubclassOf<AWeaponBase> weaponClass);
+	bool AddWeaponClass(TSubclassOf<AWeaponBase> weaponClass, FInstancedStruct& deltaPropery, bool bIsSwap = false);
+
+	// 임의 무기를 보유 목록에서 제거하는 함수
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
+	bool RemoveWeaponClass(TSubclassOf<AWeaponBase> weaponClass);
 
 	// 임의 무기를 장착(부착)하는 함수
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
-	void AttachWeaponMeshes(AWeaponBase* weaponActor, USkeletalMeshComponent* firstPersonWeaponMesh, USkeletalMeshComponent* thirdPersonWeaponMesh);
+	void ArmWeapon(TSubclassOf<AWeaponBase> weaponClass);
+
+	// 임의 타입의 무기를 무장 해제하는 함수
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
+	void DisarmWeapon(TSubclassOf<AWeaponBase> weaponClass);
 
 	// 무기를 이용한 공격에 대하여 Montage를 재생하는 함수
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
@@ -43,11 +51,4 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
 	FVector GetWeaponTargetLocation();
 
-	// 기존에 보유하고 있으면서 비활성화 되어있는 무기를 활성화하는 함수
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
-	void ActivateWeapon(AWeaponBase* weaponActor);	// 무기 교체에 사용
-	
-	// 기존에 보유하고 있으면서 활성화 되어있는 무기를 비활성화하는 함수
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "IWeaponHolderTemplate")
-	void DeativateWeapon(AWeaponBase* weaponActor);	// 무기 교체에 사용
 };

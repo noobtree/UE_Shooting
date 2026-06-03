@@ -4,7 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "StructUtils/InstancedStruct.h"
 #include "WeaponBase.generated.h"
+
+USTRUCT(BlueprintType)
+struct UE_SHOOTING_API FWeaponBaseDelta
+{
+	GENERATED_BODY()
+
+public:
+	// 무게 변화량
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Base")
+	float deltaMass = 0;
+
+	// 소음 변화량
+	float deltaNoise = 0;
+};
 
 /// <summary>
 /// 잡는 위치와, 총구의 위치를 socket으로 표시하기 위하여 무기의 Mesh는 USkeletalMesh를 사용
@@ -110,6 +125,11 @@ public:
 	// 공격 키 입력이 종료되었을 경우 실행되는 함수
 	UFUNCTION(BlueprintCallable, Category = "Weapon|Base")
 	virtual void StopAttack();
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Base")
+	virtual FInstancedStruct ExtractDeltaProperty();
+	UFUNCTION(BlueprintCallable, Category = "Weapon|Base")
+	virtual void ApplyDeltaProperty(const FInstancedStruct deltaProperty);
 
 #pragma region Getter
 

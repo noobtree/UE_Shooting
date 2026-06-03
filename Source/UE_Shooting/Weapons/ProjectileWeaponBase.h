@@ -65,6 +65,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4_Projectile|Aim")
 	float recoil;
 
+	UPROPERTY()
+	FTimerHandle recoilHandle;
+
+	float continuousShotCount;
+	TObjectPtr<UCurveFloat> recoilCurve;
+
 #pragma endregion
 
 #pragma endregion
@@ -89,6 +95,9 @@ public:
 	virtual void Reload_Implementation() override;
 
 #pragma endregion
+
+	void ApplyRecoil();
+	void ResetRecoil();
 
 protected:
 #pragma region Derived From AWeaponBase

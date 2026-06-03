@@ -32,7 +32,7 @@ void AWeaponBase::BeginPlay()
 		if (Owner->GetClass()->ImplementsInterface(UWeaponHolderTemplate::StaticClass()))
 		{
 			// 무기를 보유한 액터에게 무기의 Mesh 붙이기
-			IWeaponHolderTemplate::Execute_AttachWeaponMeshes(Owner, this, firstPersonMeshComponent, thirdPersonMeshComponent);
+			IWeaponHolderTemplate::Execute_ArmWeapon(Owner, this->GetClass());
 		}
 		else
 		{
@@ -87,6 +87,20 @@ void AWeaponBase::StopAttack()
 {
 	// 현재 공격이 종료된 것으로 변경
 	bAttackInput = false;
+}
+
+FInstancedStruct AWeaponBase::ExtractDeltaProperty()
+{
+	FWeaponBaseDelta deltaProperty;
+	deltaProperty.deltaMass = 0;
+	deltaProperty.deltaNoise = 0;
+	return FInstancedStruct::Make(deltaProperty);
+}
+
+void AWeaponBase::ApplyDeltaProperty(const FInstancedStruct deltaProperty)
+{
+	const FWeaponBaseDelta* delta = deltaProperty.GetPtr<FWeaponBaseDelta>();
+	this->noiseDecibel += delta->deltaNoise;
 }
 
 void AWeaponBase::NotifyBeginAttack_Implementation()

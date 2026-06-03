@@ -100,6 +100,14 @@ void AProjectileWeaponBase::Reload_Implementation()
 	IWeaponHolderTemplate::Execute_PlayWeaponMontage(ownerPawn, firstPersonReloadMontage, thirdPersonReloadMontage);
 }
 
+void AProjectileWeaponBase::ApplyRecoil()
+{
+}
+
+void AProjectileWeaponBase::ResetRecoil()
+{
+}
+
 void AProjectileWeaponBase::NotifyBeginAttack_Implementation()
 {
 	// 공격 입력 여부 확인
@@ -118,7 +126,7 @@ void AProjectileWeaponBase::NotifyBeginAttack_Implementation()
 	IProjectileWeaponTemplate::Execute_SpawnProjectile(this, 1);
 
 	// 반동 적용
-	ownerPawn->AddControllerPitchInput(-recoil);
+	ownerPawn->AddControllerPitchInput(-recoil * GetWorld()->DeltaTimeSeconds);
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Recoil!!!!"));
 
 	// 공격에 따른 소음 발생

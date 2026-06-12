@@ -4,7 +4,7 @@
 #include "HealthComponent.h"
 #include "PlayerManager.h"
 #include "ShootingPlayerController.h"
-#include "UE_Shooting/UI/ShootingHUD.h"
+#include "UE_Shooting/UI/HeadUpDisplayWidget.h"
 #include "UE_Shooting/UI/HealthWidget.h"
 #include "UE_Shooting/Managers/LocalWidgetManager.h"
 #include "UE_Shooting/UI/WidgetAcceptable.h"

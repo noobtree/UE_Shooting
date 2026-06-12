@@ -52,10 +52,4 @@ public:
 	// HUD UI 클래스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI");
 	TSubclassOf<UUserWidget> hudWidgetClass;
-
-	UUserWidget* hudWidgetInstance;
-
-protected:
-	UFUNCTION()
-	bool AddWidgetToViewport(TSubclassOf<UUserWidget> widgetClass, UUserWidget*& widgetInstance);
 };

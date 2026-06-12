@@ -6,7 +6,7 @@
 #include "Components/GridSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
-#include "UE_Shooting/Components/HealthComponent.h"
+#include "Components/HealthComponent.h"
 
 void UHealthWidget::NativeConstruct()
 {
@@ -17,9 +17,13 @@ void UHealthWidget::NativeConstruct()
 
 	// 양쪽 체력바의 폭 설정
 	leftBarSizeBox->SetMinDesiredWidth(healthBarMaxWidth);
-	leftDamageTrailSizeBox->SetWidthOverride(healthBarMaxWidth);
 	rightBarSizeBox->SetMinDesiredWidth(healthBarMaxWidth);
+
+	leftDamageTrailSizeBox->SetWidthOverride(healthBarMaxWidth);
 	rightDamageTrailSizeBox->SetWidthOverride(healthBarMaxWidth);
+
+	leftHealthSizeBox->SetWidthOverride(healthBarMaxWidth);
+	rightHealthSizeBox->SetWidthOverride(healthBarMaxWidth);
 
 	// 데미지 트레일 이벤트 연결
 	FOnTimelineFloat timelineDelegate;
@@ -28,10 +32,6 @@ void UHealthWidget::NativeConstruct()
 	{
 		damageTrailTimeline.AddInterpFloat(damageTrailShrinkCurve, timelineDelegate);
 	}
-
-	// 최대 체력 상태로 초기화
-	OnHealthChanged(1, 1);
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, FString::Printf(TEXT("Shrink Reserved")));
 
 	// Widget 위치 조정
 	UCanvasPanelSlot* widgetSlot = Cast<UCanvasPanelSlot>(Slot);
@@ -67,6 +67,10 @@ void UHealthWidget::OnHealthChanged(float currentHealth, float maxHealth)
 	// 체력 텍스트 변경
 	FString healthText = FString::Printf(TEXT("%.0f %%"), factor * 100);
 	healthTextBlock->SetText(FText::FromString(healthText));
+
+	// 체력 색상 변경
+	float colorFactor = FMath::GetRangePct(0.2f, 1.0f, factor);
+	healthTextBlock->SetColorAndOpacity(FLinearColor(1, colorFactor, colorFactor, 1));
 
 	StartDamageTrailTimeline();
 }

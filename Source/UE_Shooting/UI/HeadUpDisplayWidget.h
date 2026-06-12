@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "ShootingHUD.generated.h"
+#include "WidgetAcceptable.h"
+#include "HeadUpDisplayWidget.generated.h"
 
 /**
  * 
  */
 UCLASS(Abstract)
-class UE_SHOOTING_API UShootingHUD : public UUserWidget
+class UE_SHOOTING_API UHeadUpDisplayWidget : public UUserWidget, public IWidgetAcceptable
 {
 	GENERATED_BODY()
 
@@ -23,6 +24,5 @@ protected:
     TObjectPtr<class UCanvasPanel> rootCanvasPanel;
 
 public:
-    UFUNCTION(BlueprintCallable)
-    UPanelSlot* AddContent(UWidget* widget);
+    virtual UPanelSlot* AddChildWidget_Implementation(UUserWidget* widget) override;
 };

@@ -1,15 +1,16 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "ShootingHUD.h"
+#include "HeadUpDisplayWidget.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 
-void UShootingHUD::NativeConstruct()
+void UHeadUpDisplayWidget::NativeConstruct()
 {
+	Super::NativeConstruct();
 }
 
-UPanelSlot* UShootingHUD::AddContent(UWidget* widget)
+UPanelSlot* UHeadUpDisplayWidget::AddChildWidget_Implementation(UUserWidget* widget)
 {
 	if (IsValid(rootCanvasPanel) == true)
 	{

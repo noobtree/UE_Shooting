@@ -29,18 +29,3 @@ void AShootingPlayerController::BeginPlay()
 		widgetManager->FindOrAddWidget(hudWidgetClass);
 	}
 }
-
-bool AShootingPlayerController::AddWidgetToViewport(TSubclassOf<UUserWidget> widgetClass, UUserWidget*& widgetInstance)
-{
-	if (IsValid(widgetInstance) == false)
-	{
-		widgetInstance = CreateWidget<UUserWidget>(this, widgetClass);
-	}
-
-	if (widgetInstance->IsInViewport() == false)
-	{
-		widgetInstance->AddToViewport();
-	}
-
-	return IsValid(widgetInstance);
-}

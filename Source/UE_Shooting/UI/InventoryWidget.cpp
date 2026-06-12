@@ -5,7 +5,7 @@
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Components/SizeBox.h"
 #include "Components/UniformGridPanel.h"
-#include "UE_Shooting/Components/InventoryComponent.h"
+#include "Components/InventoryComponent.h"
 
 void UInventoryWidget::NativeConstruct()
 {
